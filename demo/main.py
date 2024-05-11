@@ -28,6 +28,7 @@ import chat as chat
 import checkbox as checkbox
 import divider as divider
 import embed as embed
+import html_demo as html_demo
 import icon as icon
 import image as image
 import input as input
@@ -133,6 +134,7 @@ COMPONENTS_SECTIONS = [
     name="Advanced",
     examples=[
       Example(name="embed"),
+      Example(name="html_demo"),
       Example(name="plot"),
     ],
   ),

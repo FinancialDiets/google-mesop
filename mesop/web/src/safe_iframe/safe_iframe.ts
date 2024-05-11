@@ -11,6 +11,12 @@ export function setIframeSrc(iframe: HTMLIFrameElement, src: string) {
   setIframeSrcImpl(iframe, src);
 }
 
+export function setIframeSrcDoc(iframe: HTMLIFrameElement, srcDoc: string) {
+  // Intentionally delegate to an impl function because the following
+  // line will be modified downstream.
+  setIframeSrcDocImpl(iframe, srcDoc);
+}
+
 // copybara:strip_begin(external-only)
 function setIframeSrcImpl(iframe: HTMLIFrameElement, src: string) {
   // This is a tightly controlled list of attributes that enables us to
@@ -29,5 +35,25 @@ function setIframeSrcImpl(iframe: HTMLIFrameElement, src: string) {
   );
 
   iframe.src = sanitizeJavaScriptUrl(src)!;
+}
+
+function setIframeSrcDocImpl(iframe: HTMLIFrameElement, srcdoc: string) {
+  // This is a tightly controlled list of attributes that enables us to
+  // secure sandbox iframes. Do not add additional attributes without
+  // consulting a security resource.
+  //
+  // Ref:
+  // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#sandbox
+  iframe.sandbox.add(
+    'allow-same-origin',
+    'allow-scripts',
+    'allow-forms',
+    'allow-popups',
+    'allow-popups-to-escape-sandbox',
+    'allow-storage-access-by-user-activation',
+  );
+
+  // Check if there's any santiziation that's needed.
+  iframe.srcdoc = srcdoc;
 }
 // copybara:strip_end

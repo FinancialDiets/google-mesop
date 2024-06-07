@@ -2,6 +2,7 @@
 # to ensure local imports.
 # ruff: noqa: E402
 
+import base64
 import inspect
 import os
 import sys
@@ -15,6 +16,8 @@ import mesop as me
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
   sys.path.append(current_dir)
+
+import glob
 
 import audio as audio
 import badge as badge
@@ -162,10 +165,130 @@ class State:
   preview_fullscreen: bool
 
 
+screenshots: dict[str, str] = {}
+
+
+def load_home_page(e: me.LoadEvent):
+  yield
+  screenshot_dir = os.path.join(current_dir, "screenshots")
+  screenshot_files = glob.glob(os.path.join(screenshot_dir, "*.png"))
+
+  for screenshot_file in screenshot_files:
+    image_name = os.path.basename(screenshot_file).split(".")[0]
+    with open(screenshot_file, "rb") as image_file:
+      encoded_string = base64.b64encode(image_file.read()).decode()
+      screenshots[image_name] = "data:image/png;base64," + encoded_string
+
+  yield
+
+
+@me.page(
+  title="Mesop Demos",
+  security_policy=me.SecurityPolicy(
+    allowed_iframe_parents=["https://google.github.io"]
+  ),
+  on_load=load_home_page,
+)
+def main_page():
+  header(demo_name="Home")
+  with me.box(
+    style=me.Style(
+      flex_grow=1,
+      display="flex",
+    )
+  ):
+    side_menu()
+    with me.box(
+      style=me.Style(
+        width="calc(100% - 150px)",
+        display="flex",
+        gap=24,
+        flex_direction="column",
+        padding=me.Padding.all(24),
+        overflow_y="auto",
+      )
+    ):
+      with me.box(
+        style=me.Style(
+          height="calc(100vh - 120px)",
+        )
+      ):
+        for section in ALL_SECTIONS:
+          with me.box(style=me.Style(margin=me.Margin(bottom=28))):
+            me.text(
+              section.name,
+              style=me.Style(
+                font_weight=500,
+                font_size=20,
+                margin=me.Margin(
+                  bottom=16,
+                ),
+              ),
+            )
+            with me.box(
+              style=me.Style(
+                display="flex",
+                flex_direction="row",
+                flex_wrap="wrap",
+                gap=28,
+              )
+            ):
+              for example in section.examples:
+                example_card(example.name)
+
+
+def navigate_example_card(e: me.ClickEvent):
+  me.navigate("/embed/" + e.key)
+
+
+def example_card(name: str):
+  with me.box(
+    key=name,
+    on_click=navigate_example_card,
+    style=me.Style(
+      border=me.Border.all(
+        me.BorderSide(
+          width=1,
+          color="rgb(220, 220, 220)",
+          style="solid",
+        )
+      ),
+      box_shadow="rgba(0, 0, 0, 0.2) 0px 3px 1px -2px, rgba(0, 0, 0, 0.14) 0px 2px 2px, rgba(0, 0, 0, 0.12) 0px 1px 5px",
+      cursor="pointer",
+      width="min(100%, 402px)",
+      border_radius=12,
+      background="#fff",
+    ),
+  ):
+    image_url = screenshots.get(name, "")
+    me.box(
+      style=me.Style(
+        background=f'url("{image_url}")',
+        height=300,
+        width=400,
+      )
+    )
+    me.text(
+      format_example_name(name),
+      style=me.Style(
+        font_weight=500,
+        font_size=18,
+        padding=me.Padding.all(12),
+        border=me.Border(
+          top=me.BorderSide(
+            width=1,
+            style="solid",
+            color="rgb(220, 220, 220)",
+          )
+        ),
+      ),
+    )
+
+
 def create_main_fn(example: Example):
   @me.page(
     title="Mesop Demos",
-    path="/" if example.name == "chat" else "/embed/" + example.name,
+    path="/embed/" + example.name,
     security_policy=me.SecurityPolicy(
       allowed_iframe_parents=["https://google.github.io"]
     ),
